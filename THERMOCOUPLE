@@ -1,0 +1,192 @@
+#include <stdio.h>
+#include <p30f6014.h>
+#include <math.h>
+#include<stdlib.h>
+#include<string.h>
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF);
+_FBORPOR(PBOR_OFF);
+
+int copy;
+int main()
+{
+	init(); 									//initialising the UART config
+	ADC_call();									//initiaising the ADC config 
+	SPI_init();									//initialising the SPI config
+									
+	ADCON1bits.ADON=1;							//Enabiling the A/D converter module
+    int i;
+	int ADCvalue1,ADCvalue2,temp;								//RD0 for LED operation
+	while(1)
+	{
+		ADCON1bits.SAMP=1;						//start sampling 
+		delay_ms();
+		int value=0x04C7;
+		ADCON1bits.SAMP=0;						//stop samp and start converting 						
+		while(!ADCON1bits.DONE){
+			copy=ADCBUF0;
+		//	temp=copy*0.398276;  
+			ADCvalue1=ADCBUF0;
+			ADCvalue2=ADCBUF0>>8;
+		while(U1STAbits.TRMT!=1);
+			if(copy<value){
+			LCD1();
+			display();
+			check_value();
+			}
+			else if(copy>value)
+			{
+				//IFS1bits.U2TXIF=1;
+				LCD2(); 
+				for(i=0;i<20;i++)
+				{
+				_TRISD0=0;
+				PORTDbits.RD0=0;
+				delay_ms();
+				PORTDbits.RD0=1;
+				delay_ms();
+				}
+			}
+		
+	}
+}
+}
+
+void display(void)
+{
+	while(U1STAbits.TRMT!=1);
+	U1TXREG='T';
+	U1TXREG='E';
+	U1TXREG='M';
+	U1TXREG='P';
+	while(U1STAbits.TRMT!=1);
+	U1TXREG=' ';
+	U1TXREG='I';
+	U1TXREG='S';
+	U1TXREG=':';
+}
+
+void check_value(void)
+{
+	while(U1STAbits.TRMT!=1);
+	if(copy<=0x016A)
+		printf("%d degree C\n",38);
+	else if(copy>0x016A&&copy<=0x1E6)
+		printf("%d degree C\n",42);
+	else if(copy>0x01E6&&copy<=0x0261)
+		printf("%d degree C\n",45);
+	else if(copy>0x0261&&copy<=0x02DC)
+		printf("%d degree C\n",48);
+	else if(copy>0x02DC&&copy<=0x0356)
+		printf("%d degree C\n",51);
+	else if(copy>0x0356&&copy<=0x03D0)
+		printf("%d degree C\n",53);
+	else if(copy>0x03D0&&copy<=0x044C)
+		printf("%d degree C\n",56);
+	else if(copy>0x044C&&copy<=0x04C7)
+		printf("%d degree C\n",58);
+	else if(copy>0x04C7&&copy<=0x0542)
+		printf("%d degree C\n",61);
+return;
+}
+	
+	
+void init(void)
+{
+	U1MODE=0x8000;	//enabling uart bit
+	U1MODEbits.USIDL=1; 
+	U1STAbits.UTXEN=1; 	//enabling transmitter bit
+	U1BRG=11;   //BAUD RATE 38.4kbps
+	IFS0bits.U1TXIF=0;
+    return;
+}
+
+void ADC_call(void)
+{
+	ADPCFG=0xDFFF;  //all port digital:AN13=analog
+	//TRISB=1;
+	ADCON1=0x0000;	
+	ADCHS=0x000D;	//AN13 as CH0input
+	ADCSSL=0;
+	ADCON3=0x0002;
+	ADCON2=0;
+	return;
+}
+
+void SPI_init(void)
+{
+	TRISGbits.TRISG9=0;
+	//SPI2CON=0x083F;
+SPI2STAT=0X8000;
+SPI2CON=0X0000;
+SPI2STATbits.SPISIDL=1;
+SPI2STATbits.SPITBF=1;
+SPI2CONbits.SPRE = 0b111;
+SPI2CONbits.PPRE = 0b00;
+SPI2CONbits.MSTEN = 1;
+SPI2CONbits.MODE16 = 0;		//	DATA IS 16 BITS
+return;
+}
+
+void LCD1(void)
+{
+	int i;
+        unsigned char LCD_line[]={"THE TEMPERATURE IS BELOW 58 degree C"};
+	LCD_command(0x82);// to clear home screen and set the cursor
+	LCD_command(0x8C);
+	LCD_command(0xC5);
+	LCD_command(0x00);
+	LCD_command(0x00);
+	for(i=0;LCD_line[i]!='\0';i++)
+	{
+	LCD_command(0xA8);
+	LCD_command(LCD_line[i]);
+	}
+return;	
+}
+
+void LCD2(void)
+{
+	int i;
+        unsigned char LCD_line[]={"THE TEMPERATURE IS ABOVE 58 degree C"};
+	LCD_command(0x82);// to clear home screen and set the cursor
+	LCD_command(0x8C);
+	LCD_command(0xC5);
+	LCD_command(0x00);
+	LCD_command(0x00);
+	for(i=0;LCD_line[i]!='\0';i++)
+	{
+	LCD_command(0xA8);
+	LCD_command(LCD_line[i]);
+	}
+return;	
+}
+
+
+
+void LCD_command(unsigned char data)
+{
+	unsigned int dummy;
+LATGbits.LATG9 = 1;                 // Set slave select high
+		SPI2STATbits.SPIROV = 0;
+     dummy = SPI2BUF; 
+	LATGbits.LATG9 = 0; 
+	SPI2BUF=data;
+        while (SPI2STATbits.SPIRBF == 0);
+                while(SPI2STATbits.SPITBF);
+			LATGbits.LATG9 = 1;	
+			//delayms();
+return;       
+}
+void delay_ms(void)
+{
+	int i,j;	
+	for(i=0;i<650;i++)
+	{	for(j=0;j<100;j++)
+		{
+		}
+		//do nothing
+	}
+	return;
+}
+
