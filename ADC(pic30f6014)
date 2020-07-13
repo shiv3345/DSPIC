@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <p30f6014.h>
+#include <math.h>
+
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF);
+_FBORPOR(PBOR_OFF);
+
+int ADCvalue1,ADCvalue2;
+void init(void)
+{
+	U1MODE=0x8000;				//enabling uart bit
+	U1MODEbits.USIDL=1; 
+	U1STAbits.UTXEN=1; 			//enabling transmitter bit
+	U1BRG=11;   				//BAUD RATE 38.4kbps
+    return ;
+}
+
+void ADC_call(void)
+{
+	ADPCFG=0xFFEF; 			//all port digital:AN13=analog
+	ADCON1=0x0000;	
+	ADCHS=0x0004;				//AN13 as CH0input
+	ADCSSL=0;
+	ADCON3=0x0002;				//Setting clock bit as (3*TCY)/2
+	ADCON2=0;	
+	return;
+}
+int main()
+{
+	init();
+	ADC_call();
+	ADCON1bits.ADON=1;			//enabling ADC converter module
+	while(1)
+	{
+		ADCON1bits.SAMP=1;		//start sampling 
+		delay_ms();
+		ADCON1bits.SAMP=0;		//stop samp and start converting 
+		while(!ADCON1bits.DONE){  
+            ADCvalue1=ADCBUF0;
+			ADCvalue2=ADCBUF0>>8; 	
+		while(U1STAbits.TRMT!=1);
+			printf("The Potentiometer value is %X\n",ADCBUF0);
+            //U2TXREG=ADCvalue1;
+			//U2TXREG=ADCvalue2;
+		}
+		delay_ms();
+	}
+}
+void delay_ms(void)
+{
+	int i=0,j=0;	for(i=0;i<1000;i++)
+	{
+		for(j=0;j<100;j++){}
+		//do nothing
+	}
+	return;
+}
