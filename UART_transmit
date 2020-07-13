@@ -1,0 +1,32 @@
+
+//Transmission using UART
+
+#include <stdio.h>
+#include <p30f6014.h>
+#include <math.h>
+
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF);
+_FBORPOR(PBOR_OFF);
+
+
+void init(void)
+{
+        U2MODE=0x8000;          //enabling UART
+	U2STAbits.UTXEN=1; 	//enabling transmitter bit
+	U2BRG=11;   //BAUD RATE 38400kbps
+    return ;
+}
+int main()
+{
+        init();
+		int  d;
+        while(1)
+	{
+        while (U2STAbits.TRMT !=1);  //Check for transmit shift register
+       U2TXREG='T';
+        U2TXREG='R';
+        U2TXREG='I';
+	}
+}
+
