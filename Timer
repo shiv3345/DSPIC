@@ -1,0 +1,61 @@
+//Delay using timer
+
+#include<p30f6014.h>
+#include <math.h>
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF); 
+_FBORPOR(PBOR_OFF);
+
+int count;
+
+void init_UART_one(void)
+{
+	U2MODE=0x8000;          		//enabling UART
+	U2MODEbits.USIDL = 1;			//stop in idle mode
+	U2STAbits.UTXEN=1; 				//enabling transmitter bit
+	U2BRG=11;   					//BAUD RATE 38400kbps
+    return ;
+}
+
+///// timer 1 initialization routine
+void init_tmr1(void){
+	T1CONbits.TSIDL=0;								//continue in idle mode
+	T1CONbits.TCS=0;								//Fcy(Fosc/4) is used for clock
+	T1CONbits.TGATE=0;								//no gated mode.
+
+	T1CONbits.TCKPS = 0b10;	//prescaler = 8			//  without scalar time obtained by 16 bit timer 1 is 5.192 ms 
+													//  with 8 scalar timer overflow will take place at 43.536ms							
+	IPC0bits.T1IP = 1;								//Setting priority Flag
+    IFS0bits.T1IF =  0;
+    IEC0bits.T1IE = 1;								//Enabling Interrupt 							
+    TMR1=0x0000;  									//setting for 40 ms  PR1 has to have a value of 
+	PR1= 0x4E20;
+	return;
+}
+
+void __attribute__((__interrupt__, no_auto_psv)) _T1Interrupt(void)
+{
+count=1;
+IFS0bits.T1IF =  0;
+T1CONbits.TON =1;
+}
+
+
+void main(void)
+{	
+	init_UART_one();
+	init_tmr1();
+
+	T1CONbits.TON =1;
+	while(1){
+		while(count==0);
+		while(U2STAbits.TRMT != 1 );
+		U2TXREG = 'A';
+		U2TXREG = 'B';
+		U2TXREG = 'C';
+		U2TXREG = 'D';
+
+		count =0;
+			}
+return;
+}
