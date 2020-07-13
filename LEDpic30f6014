@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <p30f6014.h>
+#include <math.h>
+
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF);
+_FBORPOR(PBOR_OFF);
+
+int main(void)
+{
+	_TRISD0=0;
+	while(1)
+	{
+		PORTDbits.RD0=1;
+		delay_ms();
+		PORTDbits.RD0=0;
+		delay_ms();
+	}
+}
+void delay_ms(void)
+{
+	int i,j;	for(i=0;i<650;i++)
+	{
+	for(j=0;j<100;j++)
+		{}
+		//do nothing
+	}
+	return;
+}
+
