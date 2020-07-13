@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <p30f6014.h>
+#include <math.h>
+
+_FOSC(CSW_FSCM_OFF & XT_PLL4);
+_FWDT(WDT_OFF);
+_FBORPOR(PBOR_OFF);
+
+
+void SPI_init(void)
+{
+	///ADPCFG=0XFFFF;
+	TRISGbits.TRISG9=0;
+	//LATGbits.LATG9=1;
+	
+	//SPI2CON=0x083F;
+SPI2STAT=0X8000;
+SPI2CON=0X0000;
+SPI2STATbits.SPISIDL=1;
+SPI2STATbits.SPITBF=1;
+SPI2CONbits.SPRE = 0b111;
+SPI2CONbits.PPRE = 0b00;
+SPI2CONbits.MSTEN = 1;
+//SPI2CONbits.CKP = 0;		//  CLOCK IDLE STATE IS low
+//SPI2CONbits.CKE = 0; 		//  DATA VALID AT falling EDGE
+SPI2CONbits.MODE16 = 0;		//	DATA IS 16 BITS
+//SPI2CONbits.DISSDO = 1;
+return;
+}
+
+void main(void)
+{
+        unsigned char LCD_line[]={"I don't know anything"};
+	int i=0;
+	SPI_init();
+	LCD_command(0x82);// to clear home screen and set the cursor
+	LCD_command(0x8C);
+	LCD_command(0xC5);
+	LCD_command(0x03);
+	LCD_command(0x00);
+
+    for(i=0;LCD_line[i]!='\0';i++)
+	{
+	LCD_command(0xA8);
+	LCD_command(LCD_line[i]);
+	}
+return;	
+}
+void LCD_command(unsigned char data)
+{
+	unsigned int dummy;
+LATGbits.LATG9 = 1;                 // Set slave select high
+		SPI2STATbits.SPIROV = 0;
+     dummy = SPI2BUF; 
+	LATGbits.LATG9 = 0; 
+	SPI2BUF=data;
+        while (SPI2STATbits.SPIRBF == 0);
+                while(SPI2STATbits.SPITBF);
+			LATGbits.LATG9 = 1;	
+			//delayms();
+return;       
+}
+void delayms(void)
+{
+	int i;
+	for(i=0;i<650;i++)
+	{
+		//do nothing
+	}
+	return;
+}
+
